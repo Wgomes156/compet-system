@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap');
+
+:root {
+  --primary: #0a192f;
+  --secondary: #112240;
+  --accent: #ffd700; /* Gold Judô */
+  --accent-hover: #ffea70;
+  --text-main: #e6f1ff;
+  --text-dim: #8892b0;
+  --white: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #0a192f 0%, #112240 100%);
+  --glass: rgba(17, 34, 64, 0.7);
+  --border-radius: 12px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 10px 30px -15px rgba(2, 12, 27, 0.7);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: var(--secondary);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+  z-index: 100;
+}
+
+.main-content {
+  margin-left: 280px;
+  padding: 3rem;
+  max-width: 1400px;
+  width: calc(100% - 280px);
+}
+
+.nav-link {
+  padding: 1rem;
+  border-radius: 8px;
+  color: var(--text-dim);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition);
+  margin-bottom: 0.5rem;
+}
+
+.nav-link:hover, .nav-link.active {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--accent);
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-main);
+  outline: none;
+  transition: var(--transition);
+}
+
+input:focus, select:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: rgba(255, 215, 0, 0.05);
+  color: var(--accent);
+  text-align: left;
+  padding: 1rem;
+  font-weight: 600;
+}
+
+td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
