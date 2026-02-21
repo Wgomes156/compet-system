@@ -44,7 +44,22 @@ Após rodar o comando `npm run dev`, o terminal exibirá um link (geralmente `ht
 - **Estilização:** Vanilla CSS (Design Premium com Glassmorphism)
 - **Ícones:** Lucide React
 - **Documentos:** jsPDF + jsPDF-AutoTable
-- **Persistência:** LocalStorage (para funcionamento offline e rápido)
+- **Persistência:** SQLite com Prisma ORM (Backend robusto e escalável)
+
+---
+
+## 🗄️ Banco de Dados
+
+O sistema utiliza **Prisma** com **SQLite** para armazenamento local. Para visualizar ou editar os dados diretamente:
+
+1. Abra um terminal na pasta `server`.
+2. Execute o comando:
+   ```bash
+   npx prisma studio
+   ```
+3. O painel de visualização abrirá no seu navegador (geralmente em `http://localhost:5555`).
+
+Alternativamente, você pode usar a extensão **SQLite Viewer** do VS Code para abrir o arquivo em `server/prisma/dev.db`.
 
 ---
 
