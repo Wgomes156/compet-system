@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Equipe {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  tecnico   String
+  contato   String
+  atletas   Atleta[]
+  createdAt DateTime @default(now())
+}
+
+model Atleta {
+  id               Int                @id @default(autoincrement())
+  nome             String
+  graduacao        String
+  sexo             String
+  categoria        String
+  equipe           Equipe             @relation(fields: [equipeId], references: [id])
+  equipeId         Int
+  lutasA           Luta[]             @relation("AtletaA")
+  lutasB           Luta[]             @relation("AtletaB")
+  vitorias         Luta[]             @relation("Vencedor")
+  derrotas         Luta[]             @relation("Derrotado")
+  registrosDerrota RegistroDerrota[]
+  podiosPrimeiro   Podio[]            @relation("PodioPrimeiro")
+  podiosSegundo    Podio[]            @relation("PodioSegundo")
+  podiosTerceiro1  Podio[]            @relation("PodioTerceiro1")
+  podiosTerceiro2  Podio[]            @relation("PodioTerceiro2")
+  createdAt        DateTime           @default(now())
+}
+
+model Categoria {
+  id           String        @id @default(uuid())
+  nome         String        // ex: "Masculino | Branca | Ligeiro"
+  sexo         String
+  graduacao    String
+  peso         String
+  status       String        @default("AGUARDANDO") // AGUARDANDO, EM_ANDAMENTO, CONCLUIDA
+  lutas        Luta[]
+  podio        Podio?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Luta {
+  id                  String            @id @default(uuid())
+  categoria           Categoria         @relation(fields: [categoriaId], references: [id])
+  categoriaId         String
+  bracketTipo         String            // PRINCIPAL, REPESCAGEM
+  rodada              Int
+  nomeRodada          String
+  posicao             Int
+  lado                String?           // A, B
+  atletaA             Atleta?           @relation("AtletaA", fields: [atletaAId], references: [id])
+  atletaAId           Int?
+  atletaB             Atleta?           @relation("AtletaB", fields: [atletaBId], references: [id])
+  atletaBId           Int?
+  vencedor            Atleta?           @relation("Vencedor", fields: [vencedorId], references: [id])
+  vencedorId          Int?
+  derrotado           Atleta?           @relation("Derrotado", fields: [derrotadoId], references: [id])
+  derrotadoId         Int?
+  resultadoTipo       String?           // NORMAL, WO_A, WO_B, BYE
+  status              String            @default("BLOQUEADA") // AGUARDANDO, BLOQUEADA, BYE, ENCERRADA, AGUARDANDO_CLASSIFICACAO
+  proximaLutaId       String?
+  lutaOrigemAId       String?
+  lutaOrigemBId       String?
+  repescagemElegivel  Boolean           @default(false)
+  repescagemGrupo     String?           // A, B
+  timestampResultado  DateTime?
+  historicoEdicoes    String?           // JSON stringify do histórico
+  createdAt           DateTime          @default(now())
+}
+
+model RegistroDerrota {
+  id              Int      @id @default(autoincrement())
+  atleta          Atleta   @relation(fields: [atletaId], references: [id])
+  atletaId        Int
+  derrotadoPorId  Int
+  rodada          Int
+  ladoBracket     String
+  elegivel        Boolean  @default(false)
+  categoriaId     String
+  createdAt       DateTime @default(now())
+}
+
+model Podio {
+  id          String    @id @default(uuid())
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId String    @unique
+  primeiro    Atleta?   @relation("PodioPrimeiro", fields: [primeiroId], references: [id])
+  primeiroId  Int?
+  segundo     Atleta?   @relation("PodioSegundo", fields: [segundoId], references: [id])
+  segundoId   Int?
+  terceiro1   Atleta?   @relation("PodioTerceiro1", fields: [terceiro1Id], references: [id])
+  terceiro1Id Int?
+  terceiro2   Atleta?   @relation("PodioTerceiro2", fields: [terceiro2Id], references: [id])
+  terceiro2Id Int?
+  createdAt   DateTime  @default(now())
+}

@@ -1,24 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Save, X, Search } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, Search, ShieldAlert } from 'lucide-react'
+import { api } from '../utils/api'
 
 const GRADUACOES = ['Branca', 'Azul', 'Amarela', 'Laranja', 'Verde', 'Roxa', 'Marrom', 'Preta']
 const CATEGORIAS = ['Ligeiro', 'Meio-Leve', 'Leve', 'Meio-Médio', 'Médio', 'Meio-Pesado', 'Pesado', 'Super-Pesado']
 
 const Atletas = () => {
-    const [atletas, setAtletas] = useState(() => {
-        const saved = localStorage.getItem('atletas')
-        return saved ? JSON.parse(saved) : []
-    })
-
-    const [equipes, setEquipes] = useState(() => {
-        const saved = localStorage.getItem('equipes')
-        return saved ? JSON.parse(saved) : []
-    })
-
-    const [chaveamentos, setChaveamentos] = useState(() => {
-        const saved = localStorage.getItem('chaveamentos')
-        return saved ? JSON.parse(saved) : []
-    })
+    const [atletas, setAtletas] = useState([])
+    const [equipes, setEquipes] = useState([])
+    const [chaveamentos, setChaveamentos] = useState([])
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingAtleta, setEditingAtleta] = useState(null)
@@ -32,68 +22,48 @@ const Atletas = () => {
     })
 
     useEffect(() => {
-        localStorage.setItem('atletas', JSON.stringify(atletas))
-    }, [atletas])
+        loadData()
+    }, [])
 
-    const handleSave = (e) => {
-        e.preventDefault()
-
-        // Validação de duplicidade (mesmo nome + equipe)
-        const duplicado = atletas.find(a =>
-            a.nome.toLowerCase() === formData.nome.toLowerCase() &&
-            a.equipeId === Number(formData.equipeId) &&
-            (!editingAtleta || a.id !== editingAtleta.id)
-        )
-
-        if (duplicado) {
-            alert("Este atleta já está cadastrado nesta equipe.")
-            return
+    const loadData = async () => {
+        try {
+            const atlData = await api.getAtletas()
+            const eqData = await api.getEquipes()
+            setAtletas(Array.isArray(atlData) ? atlData : [])
+            setEquipes(Array.isArray(eqData) ? eqData : [])
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error)
+            setAtletas([])
+            setEquipes([])
         }
-
-        if (editingAtleta) {
-            // Regra: Se mudar sexo, graduação ou categoria, remover do chaveamento (Módulo 2)
-            const mudouDadosLuta = (
-                editingAtleta.sexo !== formData.sexo ||
-                editingAtleta.graduacao !== formData.graduacao ||
-                editingAtleta.categoria !== formData.categoria
-            )
-
-            if (mudouDadosLuta) {
-                // Lógica para remover do chaveamento se necessário
-                // (Será implementada no Módulo 4, por enquanto apenas aviso)
-                console.log("Dados de luta alterados. Atleta deve ser removido dos brackets afetados.")
-            }
-
-            setAtletas(atletas.map(a => a.id === editingAtleta.id ? { ...a, ...formData, equipeId: Number(formData.equipeId) } : a))
-        } else {
-            const lastId = atletas.length > 0 ? Math.max(...atletas.map(a => a.id)) : 0
-            setAtletas([...atletas, { ...formData, id: lastId + 1, equipeId: Number(formData.equipeId) }])
-        }
-        closeModal()
     }
 
-    const handleDelete = (atleta) => {
-        // Verificar se o atleta está em algum chaveamento (Módulo 2 e 5)
-        // No momento, chaveamentos é um array vazio, mas a regra deve existir
-        const emChaveamento = chaveamentos.some(c => c.atletasPaticipantes && c.atletasPaticipantes.includes(atleta.id))
-
-        if (emChaveamento) {
-            alert(`O atleta ${atleta.nome} está participando de um chaveamento ativo. Exclua o chaveamento antes de remover o atleta, ou remova-o manualmente da chave.`)
-            return
+    const handleSave = async (e) => {
+        e.preventDefault()
+        try {
+            if (editingAtleta) {
+                await api.updateAtleta(editingAtleta.id, formData)
+            } else {
+                await api.createAtleta(formData)
+            }
+            await loadData()
+            closeModal()
+        } catch (error) {
+            alert("Erro ao salvar atleta")
         }
+    }
+
+    const handleDelete = async (atleta) => {
+        // TODO: Verificar se o atleta está em algum chaveamento ativo via API
 
         const equipeNome = equipes.find(e => e.id === atleta.equipeId)?.nome || 'Equipe'
         if (window.confirm(`Deseja realmente excluir o atleta ${atleta.nome} da equipe ${equipeNome}? Esta ação não pode ser desfeita.`)) {
-            setAtletas(atletas.filter(a => a.id !== atleta.id))
-            // LOG DE EXCLUSÃO (Módulo 5)
-            const logs = JSON.parse(localStorage.getItem('logs_exclusao') || '[]')
-            logs.push({
-                tipo: 'ATLETA',
-                id_original: atleta.id,
-                nome: atleta.nome,
-                data: new Date().toISOString()
-            })
-            localStorage.setItem('logs_exclusao', JSON.stringify(logs))
+            try {
+                await api.deleteAtleta(atleta.id)
+                await loadData()
+            } catch (error) {
+                alert("Erro ao excluir atleta")
+            }
         }
     }
 

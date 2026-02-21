@@ -1,4 +1,4 @@
-# JUDÔ COMPET SYSTEM 🥋🥇
+# JUDÔ COMPET SYSTEM  - ANTIGRAVITY/VSCODE 🥋🥇
 
 Sistema completo de gestão de competições de Judô, desenvolvido para facilitar a organização, inscrição de atletas, geração de chaves e controle de resultados.
 

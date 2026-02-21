@@ -1,37 +1,47 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, AlertTriangle, Save, X } from 'lucide-react'
+import { api } from '../utils/api'
 
 const Equipes = () => {
-    const [equipes, setEquipes] = useState(() => {
-        const saved = localStorage.getItem('equipes')
-        return saved ? JSON.parse(saved) : []
-    })
-
-    const [atletas, setAtletas] = useState(() => {
-        const saved = localStorage.getItem('atletas')
-        return saved ? JSON.parse(saved) : []
-    })
+    const [equipes, setEquipes] = useState([])
+    const [atletas, setAtletas] = useState([])
+    const [isByBackend, setIsByBackend] = useState(true)
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingEquipe, setEditingEquipe] = useState(null)
     const [formData, setFormData] = useState({ nome: '', tecnico: '', contato: '' })
 
     useEffect(() => {
-        localStorage.setItem('equipes', JSON.stringify(equipes))
-    }, [equipes])
+        loadData()
+    }, [])
 
-    const handleSave = (e) => {
-        e.preventDefault()
-        if (editingEquipe) {
-            setEquipes(equipes.map(eq => eq.id === editingEquipe.id ? { ...eq, ...formData } : eq))
-        } else {
-            const nextId = equipes.length > 0 ? Math.max(...equipes.map(e => e.id)) + 1 : 1
-            setEquipes([...equipes, { ...formData, id: nextId, createdAt: new Date().toISOString() }])
+    const loadData = async () => {
+        try {
+            const eqData = await api.getEquipes()
+            const atlData = await api.getAtletas()
+            setEquipes(eqData)
+            setAtletas(atlData)
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error)
         }
-        closeModal()
     }
 
-    const handleDelete = (equipe) => {
+    const handleSave = async (e) => {
+        e.preventDefault()
+        try {
+            if (editingEquipe) {
+                await api.updateEquipe(editingEquipe.id, formData)
+            } else {
+                await api.createEquipe(formData)
+            }
+            await loadData()
+            closeModal()
+        } catch (error) {
+            alert("Erro ao salvar equipe")
+        }
+    }
+
+    const handleDelete = async (equipe) => {
         const atletasDaEquipe = atletas.filter(a => a.equipeId === equipe.id)
 
         if (atletasDaEquipe.length > 0) {
@@ -40,16 +50,12 @@ const Equipes = () => {
         }
 
         if (window.confirm(`Deseja realmente excluir a equipe ${equipe.nome}? Esta ação não pode ser desfeita.`)) {
-            setEquipes(equipes.filter(eq => eq.id !== equipe.id))
-            // LOG DE EXCLUSÃO (Módulo 5)
-            const logs = JSON.parse(localStorage.getItem('logs_exclusao') || '[]')
-            logs.push({
-                tipo: 'EQUIPE',
-                id_original: equipe.id,
-                nome: equipe.nome,
-                data: new Date().toISOString()
-            })
-            localStorage.setItem('logs_exclusao', JSON.stringify(logs))
+            try {
+                await api.deleteEquipe(equipe.id)
+                await loadData()
+            } catch (error) {
+                alert("Erro ao excluir equipe")
+            }
         }
     }
 

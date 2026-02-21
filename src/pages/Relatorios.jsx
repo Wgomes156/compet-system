@@ -1,12 +1,35 @@
 import { useState, useEffect } from 'react'
-import { FileText, Download, PieChart, Info, Trophy as TrophyIcon } from 'lucide-react'
+import { FileText, Download, PieChart, Info, Trophy as TrophyIcon, RefreshCw, Eye } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import { api } from '../utils/api'
 
 const Relatorios = () => {
-    const [equipes, setEquipes] = useState(() => JSON.parse(localStorage.getItem('equipes') || '[]'))
-    const [atletas, setAtletas] = useState(() => JSON.parse(localStorage.getItem('atletas') || '[]'))
-    const [chaveamentos, setChaveamentos] = useState(() => JSON.parse(localStorage.getItem('chaveamentos') || '[]'))
+    // ... items above ...
+    const [equipes, setEquipes] = useState([])
+    const [atletas, setAtletas] = useState([])
+    const [chaveamentos, setChaveamentos] = useState([])
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    const loadData = async () => {
+        setLoading(true)
+        try {
+            const eqData = await api.getEquipes()
+            const atlData = await api.getAtletas()
+            const chData = await api.getAllChaveamentos()
+            setEquipes(Array.isArray(eqData) ? eqData : [])
+            setAtletas(Array.isArray(atlData) ? atlData : [])
+            setChaveamentos(Array.isArray(chData) ? chData : [])
+        } catch (error) {
+            console.error("Erro ao carregar relatórios:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     // Cálculo de estatísticas para o dashboard
     const stats = {
@@ -20,7 +43,9 @@ const Relatorios = () => {
         })).sort((a, b) => b.total - a.total)
     }
 
-    const exportPDFEquipes = () => {
+    const getEquipeNome = (id) => equipes.find(e => e.id === id)?.nome || '---'
+
+    const exportPDFEquipes = (preview = false) => {
         const doc = new jsPDF()
         const now = new Date().toLocaleString('pt-BR')
 
@@ -64,10 +89,14 @@ const Relatorios = () => {
             doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
         }
 
-        doc.save('relatorio_equipes.pdf')
+        if (preview) {
+            window.open(doc.output('bloburl'))
+        } else {
+            doc.save('relatorio_equipes.pdf')
+        }
     }
 
-    const exportPDFCategorias = () => {
+    const exportPDFCategorias = (preview = false) => {
         const doc = new jsPDF()
         const now = new Date().toLocaleString('pt-BR')
 
@@ -132,10 +161,14 @@ const Relatorios = () => {
             doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
         }
 
-        doc.save('relatorio_categorias.pdf')
+        if (preview) {
+            window.open(doc.output('bloburl'))
+        } else {
+            doc.save('relatorio_categorias.pdf')
+        }
     }
 
-    const exportPDFTodosChaveamentos = () => {
+    const exportPDFTodosChaveamentos = (preview = false) => {
         const doc = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
@@ -148,8 +181,6 @@ const Relatorios = () => {
             return
         }
 
-        const getEquipeNome = (id) => equipes.find(e => e.id === id)?.nome || '---'
-
         chaveamentos.forEach((bracket, index) => {
             if (index > 0) doc.addPage()
 
@@ -158,15 +189,15 @@ const Relatorios = () => {
             doc.text('CHAVEAMENTO OFICIAL - JUDÔ', 14, 20)
 
             doc.setFontSize(12)
-            doc.text(`Categoria: ${bracket.categoria_full}`, 14, 30)
+            doc.text(`Categoria: ${bracket.nome}`, 14, 30)
             doc.setFontSize(10)
             doc.text(`Gerado em: ${now}`, 14, 38)
 
-            const body = bracket.lutas.map(l => [
-                l.id.split('-')[1],
-                l.atleta1 ? `${l.atleta1.nome} (${getEquipeNome(l.atleta1.equipeId)})` : 'AGUARDANDO',
+            const body = (bracket.lutas || []).map(l => [
+                `${l.nomeRodada} - ${l.posicao}`,
+                l.atletaA ? `${l.atletaA.nome} (${l.atletaA.equipe?.nome || '---'})` : 'AGUARDANDO',
                 'VS',
-                l.atleta2 ? `${l.atleta2.nome} (${getEquipeNome(l.atleta2.equipeId)})` : 'AGUARDANDO',
+                l.atletaB ? `${l.atletaB.nome} (${l.atletaB.equipe?.nome || '---'})` : 'AGUARDANDO',
                 l.vencedor ? `VENCEDOR: ${l.vencedor.nome}` : (l.status === 'BYE' ? 'PASSAGEM AUTOMÁTICA' : '---')
             ])
 
@@ -183,16 +214,16 @@ const Relatorios = () => {
                 }
             })
 
-            if (bracket.status === 'CONCLUIDO' && bracket.podio) {
+            if ((bracket.status === 'CONCLUIDO' || bracket.status === 'CONCLUIDA') && bracket.podio) {
                 const pY = doc.lastAutoTable.finalY + 15
                 doc.setFontSize(12)
                 doc.text('RESULTADO FINAL (PÓDIO)', 14, pY)
 
                 const podioBody = [
-                    ['1º LUGAR (OURO)', bracket.podio.ouro?.nome || '---'],
-                    ['2º LUGAR (PRATA)', bracket.podio.prata?.nome || '---'],
-                    ['3º LUGAR (BRONZE)', bracket.podio.bronze1?.nome || '---'],
-                    ['3º LUGAR (BRONZE)', bracket.podio.bronze2?.nome || '---']
+                    ['1º LUGAR (OURO)', bracket.podio.primeiro?.nome || '---'],
+                    ['2º LUGAR (PRATA)', bracket.podio.segundo?.nome || '---'],
+                    ['3º LUGAR (BRONZE)', bracket.podio.terceiro1?.nome || '---'],
+                    ['3º LUGAR (BRONZE)', bracket.podio.terceiro2?.nome || '---']
                 ]
 
                 doc.autoTable({
@@ -214,7 +245,11 @@ const Relatorios = () => {
             doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
         }
 
-        doc.save('todos_os_chaveamentos.pdf')
+        if (preview) {
+            window.open(doc.output('bloburl'))
+        } else {
+            doc.save('todos_os_chaveamentos.pdf')
+        }
     }
 
     return (
@@ -266,9 +301,14 @@ const Relatorios = () => {
                     <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', margin: '1rem 0' }}>
                         Lista completa de equipes e seus respectivos atletas inscritos.
                     </p>
-                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={exportPDFEquipes}>
-                        <Download size={18} /> Exportar Equipes (PDF)
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => exportPDFEquipes(true)}>
+                            <Eye size={18} /> Visualizar
+                        </button>
+                        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => exportPDFEquipes(false)}>
+                            <Download size={18} /> Baixar
+                        </button>
+                    </div>
                 </div>
 
                 <div className="glass-card" style={{ textAlign: 'center' }}>
@@ -276,9 +316,14 @@ const Relatorios = () => {
                     <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', margin: '1rem 0' }}>
                         Agrupamento por sexo, graduação e categoria de peso.
                     </p>
-                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={exportPDFCategorias}>
-                        <Download size={18} /> Exportar Categorias (PDF)
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => exportPDFCategorias(true)}>
+                            <Eye size={18} /> Visualizar
+                        </button>
+                        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => exportPDFCategorias(false)}>
+                            <Download size={18} /> Baixar
+                        </button>
+                    </div>
                 </div>
 
                 <div className="glass-card" style={{ textAlign: 'center' }}>
@@ -286,14 +331,24 @@ const Relatorios = () => {
                     <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', margin: '1rem 0' }}>
                         Todos os brackets gerados (um por página) prontos para impressão.
                     </p>
-                    <button
-                        className="btn btn-secondary"
-                        style={{ width: '100%' }}
-                        onClick={exportPDFTodosChaveamentos}
-                        disabled={chaveamentos.length === 0}
-                    >
-                        <Download size={18} /> Exportar Todas as Chaves (PDF)
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                            className="btn btn-secondary"
+                            style={{ flex: 1 }}
+                            onClick={() => exportPDFTodosChaveamentos(true)}
+                            disabled={chaveamentos.length === 0}
+                        >
+                            <Eye size={18} /> Visualizar
+                        </button>
+                        <button
+                            className="btn btn-secondary"
+                            style={{ flex: 1 }}
+                            onClick={() => exportPDFTodosChaveamentos(false)}
+                            disabled={chaveamentos.length === 0}
+                        >
+                            <Download size={18} /> Baixar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

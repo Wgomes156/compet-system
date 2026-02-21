@@ -15,26 +15,97 @@ import Relatorios from './pages/Relatorios'
 import Chaveamento from './pages/Chaveamento'
 
 // Placeholder para futuras páginas
-const Dashboard = () => (
-    <div className="animate-fade-in">
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Dashboard Judô</h1>
-        <p style={{ color: 'var(--text-dim)', marginBottom: '3rem' }}>Bem-vindo ao sistema de gestão de competições.</p>
-        <div className="stat-grid">
-            <div className="glass-card">
-                <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Atletas Inscritos</h3>
-                <p style={{ fontSize: '2rem', fontWeight: '800' }}>0</p>
+const Dashboard = () => {
+    const [stats, setStats] = useState({ atletas: 0, equipes: 0, medalhas: 0 });
+    const [hasLegacyData, setHasLegacyData] = useState(false);
+    const [isMigrating, setIsMigrating] = useState(false);
+
+    useEffect(() => {
+        const legacyAtletas = JSON.parse(localStorage.getItem('atletas') || '[]');
+        const legacyEquipes = JSON.parse(localStorage.getItem('equipes') || '[]');
+        if (legacyAtletas.length > 0 || legacyEquipes.length > 0) {
+            setHasLegacyData(true);
+        }
+        fetchStats();
+    }, []);
+
+    const fetchStats = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/atletas');
+            const atletas = await response.json();
+            const eqResponse = await fetch('http://localhost:3001/api/equipes');
+            const equipes = await eqResponse.json();
+            setStats({ atletas: atletas.length, equipes: equipes.length, medalhas: 0 });
+        } catch (error) {
+            console.error("Erro ao carregar dashboard:", error);
+        }
+    };
+
+    const handleMigration = async () => {
+        if (!window.confirm("Deseja migrar seus dados antigos para o novo banco de dados?")) return;
+
+        setIsMigrating(true);
+        try {
+            const legacyAtletas = JSON.parse(localStorage.getItem('atletas') || '[]');
+            const legacyEquipes = JSON.parse(localStorage.getItem('equipes') || '[]');
+
+            const result = await api.migrar({
+                atletas: legacyAtletas,
+                equipes: legacyEquipes
+            });
+
+            if (result.success) {
+                alert(`Migração concluída! ${result.results.equipesMigradas} equipes e ${result.results.atletasMigrados} atletas migrados.`);
+                localStorage.removeItem('atletas');
+                localStorage.removeItem('equipes');
+                setHasLegacyData(false);
+                fetchStats();
+            } else {
+                alert("Erro na migração: " + result.error);
+            }
+        } catch (error) {
+            alert("Erro na migração: " + error.message);
+        } finally {
+            setIsMigrating(false);
+        }
+    };
+
+    return (
+        <div className="animate-fade-in">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                    <h1 style={{ fontSize: '2.5rem' }}>Dashboard Judô</h1>
+                    <p style={{ color: 'var(--text-dim)' }}>Bem-vindo ao sistema de gestão de competições.</p>
+                </div>
+                {hasLegacyData && (
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleMigration}
+                        disabled={isMigrating}
+                        style={{ background: 'var(--accent)', color: '#000' }}
+                    >
+                        {isMigrating ? 'Migrando...' : 'Recuperar Dados Antigos'}
+                    </button>
+                )}
             </div>
-            <div className="glass-card">
-                <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Equipes Registradas</h3>
-                <p style={{ fontSize: '2rem', fontWeight: '800' }}>0</p>
-            </div>
-            <div className="glass-card">
-                <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Medalhas Distribuídas</h3>
-                <p style={{ fontSize: '2rem', fontWeight: '800' }}>0</p>
+
+            <div className="stat-grid">
+                <div className="glass-card">
+                    <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Atletas Inscritos</h3>
+                    <p style={{ fontSize: '2rem', fontWeight: '800' }}>{stats.atletas}</p>
+                </div>
+                <div className="glass-card">
+                    <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Equipes Registradas</h3>
+                    <p style={{ fontSize: '2rem', fontWeight: '800' }}>{stats.equipes}</p>
+                </div>
+                <div className="glass-card">
+                    <h3 style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Medalhas Distribuídas</h3>
+                    <p style={{ fontSize: '2rem', fontWeight: '800' }}>{stats.medalhas}</p>
+                </div>
             </div>
         </div>
-    </div>
-)
+    );
+};
 
 function App() {
     const [activePage, setActivePage] = useState('dashboard')
