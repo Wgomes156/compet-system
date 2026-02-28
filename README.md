@@ -25,6 +25,15 @@ Após rodar o comando `npm run dev`, o terminal exibirá um link (geralmente `ht
 
 ---
 
+## Ver dados do banco de dados
+```bash
+# 1 Clicar com botão direito na pasta server
+# 2. Selecionar "Abrir no Terminal Integrado"
+# 3. Digitar o comando npx prisma studio
+# 4. Clicar no link que aparecer no terminal
+
+
+# 2. Iniciar o servidor de desenvolvimento
 ## ✨ Funcionalidades Principais
 
 - **📊 Dashboard:** Visão geral rápida com estatísticas de atletas, equipes e medalhas.
@@ -82,4 +91,4 @@ src/
 ---
 
 ## 📝 Licença
-Desenvolvido como parte do sistema **Judô Compet**. Todos os direitos reservados.
+Desenvolvido como parte do sistema **Judô Compet**. Todos os direitos reservados a PSC SERVICE CNPJ:48.117.061/0001-60.

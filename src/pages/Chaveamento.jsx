@@ -3,6 +3,8 @@ import { Trophy, Play, Edit3, Trash2, ShieldAlert, CheckCircle, Lock, RefreshCw,
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { api } from '../utils/api'
+import BracketTree from '../components/BracketTree'
+import { gerarPDFChaveTree } from '../utils/pdfGenerator'
 
 const Chaveamento = () => {
     const [equipes, setEquipes] = useState([])
@@ -44,23 +46,34 @@ const Chaveamento = () => {
         }
     }
 
-    const gerarChaveamento = async (categoriaId) => {
-        const catAtletas = atletas.filter(a => `${a.sexo} | ${a.graduacao} | ${a.categoria}` === categoriaId)
+    const gerarChaveamento = async (cat) => {
+        // Filtrar atletas que pertencem a esta categoria específica
+        const catAtletas = atletas.filter(a =>
+            a.sexo === cat.sexo &&
+            a.graduacao === cat.graduacao &&
+            a.categoria === cat.peso
+        )
+
         if (catAtletas.length < 2) {
-            alert("Mínimo de 2 atletas para gerar chaveamento.")
+            alert(`Mínimo de 2 atletas inscritos para gerar chaveamento. Encontrados: ${catAtletas.length}`)
             return
         }
 
+        setLoading(true)
         try {
-            await api.gerarChaveamento({
-                categoriaId,
+            const res = await api.gerarChaveamento({
+                categoriaId: cat.id,
                 atletasIds: catAtletas.map(a => a.id)
             })
-            await loadBracket(categoriaId)
-            const updatedCats = await api.getCategorias()
-            setCategorias(updatedCats)
+            if (res.success) {
+                await initData() // Atualizar contagem
+                await loadBracket(cat.id)
+            }
         } catch (error) {
+            console.error("Erro ao gerar chaveamento:", error)
             alert("Erro ao gerar chaveamento")
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -84,82 +97,7 @@ const Chaveamento = () => {
 
     const exportarPDFChave = (preview = false) => {
         if (!activeBracket) return
-
-        const doc = new jsPDF({
-            orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4'
-        })
-        const now = new Date().toLocaleString('pt-BR')
-
-        doc.setFontSize(18)
-        doc.setTextColor(10, 25, 47)
-        doc.text('CHAVEAMENTO OFICIAL - JUDÔ', 14, 20)
-
-        doc.setFontSize(12)
-        doc.text(`Categoria: ${activeBracket.nome}`, 14, 30)
-        doc.setFontSize(10)
-        doc.text(`Gerado em: ${now}`, 14, 38)
-
-        // Tabela de Confrontos (Representação para Impressão)
-        const body = (activeBracket.lutas || []).map(l => [
-            `${l.nomeRodada} - ${l.posicao}`,
-            l.atletaA ? `${l.atletaA.nome} (${l.atletaA.equipe?.nome || '---'})` : 'AGUARDANDO',
-            'VS',
-            l.atletaB ? `${l.atletaB.nome} (${l.atletaB.equipe?.nome || '---'})` : 'AGUARDANDO',
-            l.vencedor ? `VENCEDOR: ${l.vencedor.nome}` : (l.status === 'BYE' ? 'PASSAGEM AUTOMÁTICA' : '---')
-        ])
-
-        doc.autoTable({
-            startY: 45,
-            head: [['LUTA', 'ATLETA A', '', 'ATLETA B', 'RESULTADO']],
-            body: body,
-            theme: 'grid',
-            headStyles: { fillColor: [10, 25, 47], textColor: [255, 215, 0] },
-            styles: { fontSize: 9, cellPadding: 3 },
-            columnStyles: {
-                0: { cellWidth: 15 },
-                2: { cellWidth: 10, halign: 'center' }
-            }
-        })
-
-        // Espaço para Pódio se concluído
-        if ((activeBracket.status === 'CONCLUIDO' || activeBracket.status === 'CONCLUIDA') && activeBracket.podio) {
-            const pY = doc.lastAutoTable.finalY + 20
-            doc.setFontSize(14)
-            doc.text('RESULTADO FINAL (PÓDIO)', 14, pY)
-
-            const podioBody = [
-                ['1º LUGAR (OURO)', activeBracket.podio.primeiro?.nome || '---'],
-                ['2º LUGAR (PRATA)', activeBracket.podio.segundo?.nome || '---'],
-                ['3º LUGAR (BRONZE)', activeBracket.podio.terceiro1?.nome || '---'],
-                ['3º LUGAR (BRONZE)', activeBracket.podio.terceiro2?.nome || '---']
-            ]
-
-            doc.autoTable({
-                startY: pY + 5,
-                body: podioBody,
-                theme: 'plain',
-                styles: { fontSize: 11, fontStyle: 'bold' },
-                columnStyles: { 0: { cellWidth: 50, textColor: [255, 100, 0] } }
-            })
-        }
-
-        // Rodapé
-        const pageCount = doc.internal.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(9)
-            doc.setTextColor(150)
-            doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
-            doc.text('Gerado pelo Sistema de Competição de Judô - Impressão Oficial de Súmula', 14, doc.internal.pageSize.height - 10)
-        }
-
-        if (preview) {
-            window.open(doc.output('bloburl'))
-        } else {
-            doc.save(`chave_${activeBracket.nome?.replace(/[^a-z0-9]/gi, '_')}.pdf`)
-        }
+        gerarPDFChaveTree(activeBracket, null, preview)
     }
 
     const registrarVencedor = async (vencedorId, isWO = false) => {
@@ -204,8 +142,11 @@ const Chaveamento = () => {
                                     style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}
                                     onClick={() => {
                                         setSelectedCategoria(cat.id)
-                                        if (cat._count.lutas > 0) loadBracket(cat.id)
-                                        else gerarChaveamento(cat.id)
+                                        if (cat._count.lutas > 0) {
+                                            loadBracket(cat.id)
+                                        } else {
+                                            gerarChaveamento(cat)
+                                        }
                                     }}
                                 >
                                     {cat._count.lutas > 0 ? 'Ver Chave' : 'Gerar Chave'}
@@ -223,10 +164,10 @@ const Chaveamento = () => {
                         </div>
                     ) : (
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-                                <div>
-                                    <h2 style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>{activeBracket.nome}</h2>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className="bracket-header">
+                                <div className="bracket-header-info">
+                                    <h2>{activeBracket.nome}</h2>
+                                    <div className="bracket-header-actions">
                                         <button
                                             className="btn btn-secondary"
                                             style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
@@ -243,76 +184,18 @@ const Chaveamento = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <span style={{
-                                    padding: '0.3rem 0.8rem',
-                                    borderRadius: '20px',
-                                    fontSize: '0.8rem',
-                                    background: (activeBracket.status === 'CONCLUIDO' || activeBracket.status === 'CONCLUIDA') ? '#4dff8822' : '#ffd70022',
-                                    color: (activeBracket.status === 'CONCLUIDO' || activeBracket.status === 'CONCLUIDA') ? '#4dff88' : '#ffd700',
-                                    border: '1px solid'
-                                }}>
+                                <span className={`bracket-status-badge ${(activeBracket.status === 'CONCLUIDO' || activeBracket.status === 'CONCLUIDA') ? 'concluida' : activeBracket.status === 'EM_ANDAMENTO' ? 'em-andamento' : 'aguardando'}`}>
                                     {activeBracket.status}
                                 </span>
                             </div>
 
-                            {/* Bracket Visual (Simplificado em Lista para MVP) */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                                <h3 style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>Quadro Principal</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                                    {activeBracket.lutas.map(luta => (
-                                        <div
-                                            key={luta.id}
-                                            className={`glass-card ${luta.status === 'AGUARDANDO' ? 'animate-pulse' : ''}`}
-                                            style={{
-                                                padding: '1rem',
-                                                cursor: (luta.status === 'AGUARDANDO' || luta.status === 'ENCERRADA') ? 'pointer' : 'default',
-                                                opacity: luta.status === 'BLOQUEADA' ? 0.4 : 1,
-                                                border: luta.status === 'ENCERRADA' ? '1px solid rgba(77, 255, 136, 0.3)' : ''
-                                            }}
-                                            onClick={() => openLutaModal(luta)}
-                                        >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '1rem', color: 'var(--text-dim)' }}>
-                                                <span>LUTA #{luta.id.split('-')[1]}</span>
-                                                <span style={{
-                                                    color: luta.status === 'ENCERRADA' ? '#4dff88' : (luta.status === 'BYE' ? '#8892b0' : 'var(--accent)')
-                                                }}>
-                                                    {luta.status}
-                                                </span>
-                                            </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                {[luta.atletaA, luta.atletaB].map((atleta, idx) => (
-                                                    <div key={idx} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        padding: '0.5rem',
-                                                        background: 'rgba(255,255,255,0.02)',
-                                                        borderRadius: '4px',
-                                                        border: luta.vencedorId === atleta?.id ? '1px solid #4dff88' : 'none'
-                                                    }}>
-                                                        <span style={{
-                                                            color: atleta ? (luta.vencedorId === atleta.id ? '#4dff88' : (luta.vencedorId ? '#8892b0' : '#fff')) : '#555',
-                                                            fontWeight: luta.vencedorId === atleta?.id ? '700' : '400',
-                                                            textDecoration: (luta.vencedorId && luta.vencedorId !== atleta?.id) ? 'line-through' : 'none'
-                                                        }}>
-                                                            {atleta ? atleta.nome : '---'}
-                                                        </span>
-                                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                                                            {atleta ? atleta.equipe?.nome : ''}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {luta.status === 'AGUARDANDO' && (
-                                                <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.4rem', fontSize: '0.8rem' }}>
-                                                    <Play size={14} /> Registrar Campeão
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <BracketTree
+                                lutas={activeBracket.lutas}
+                                podio={activeBracket.podio}
+                                bracketNome={activeBracket.nome}
+                                bracketStatus={activeBracket.status}
+                                onLutaClick={openLutaModal}
+                            />
                         </div>
                     )}
                 </div>

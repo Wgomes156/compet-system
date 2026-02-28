@@ -1,0 +1,403 @@
+/* ================================================
+   BRACKET TREE — Estilo SIGE/InfoEsporte
+   Layout horizontal: rodadas como colunas
+   ================================================ */
+
+.bracket-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.bracket-tree {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    min-height: 400px;
+    width: max-content;
+}
+
+/* ---- Coluna da Rodada ---- */
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 220px;
+    position: relative;
+}
+
+.bracket-round-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent, #ffd700);
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg, #0a192f);
+}
+
+.bracket-round-matches {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex: 1;
+    gap: 0;
+}
+
+/* ---- Match (Luta individual) ---- */
+.bracket-match-wrapper {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    position: relative;
+}
+
+.bracket-match {
+    display: flex;
+    flex-direction: column;
+    width: 210px;
+    margin: 4px 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: default;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    position: relative;
+    z-index: 1;
+}
+
+.bracket-match.clickable {
+    cursor: pointer;
+}
+
+.bracket-match.clickable:hover {
+    border-color: var(--accent, #ffd700);
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.12);
+    transform: scale(1.02);
+}
+
+.bracket-match.status-encerrada {
+    border-color: rgba(77, 255, 136, 0.25);
+}
+
+.bracket-match.status-bye {
+    opacity: 0.45;
+}
+
+.bracket-match.status-bloqueada {
+    opacity: 0.35;
+}
+
+.bracket-match.status-aguardando {
+    border-color: rgba(255, 215, 0, 0.3);
+    animation: bracket-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bracket-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+    50% { box-shadow: 0 0 12px 2px rgba(255, 215, 0, 0.15); }
+}
+
+/* Match header (fight number + status) */
+.bracket-match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bracket-match-number {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-dim, #8892b0);
+    letter-spacing: 0.05em;
+}
+
+.bracket-match-status {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.bracket-match-status.s-encerrada { color: #4dff88; }
+.bracket-match-status.s-aguardando { color: var(--accent, #ffd700); }
+.bracket-match-status.s-bloqueada { color: #555; }
+.bracket-match-status.s-bye { color: #8892b0; }
+
+/* ---- Atleta Slot ---- */
+.bracket-slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    min-height: 30px;
+    transition: background 0.15s;
+    gap: 4px;
+}
+
+.bracket-slot + .bracket-slot {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bracket-slot.winner {
+    background: rgba(77, 255, 136, 0.08);
+}
+
+.bracket-slot.loser .bracket-slot-name {
+    text-decoration: line-through;
+    color: #555;
+}
+
+.bracket-slot-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #e6f1ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.bracket-slot-name.empty {
+    color: #444;
+    font-style: italic;
+}
+
+.bracket-slot-equipe {
+    font-size: 0.6rem;
+    color: var(--text-dim, #8892b0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70px;
+    text-align: right;
+}
+
+/* ---- Linhas Conectoras ---- */
+.bracket-connector {
+    width: 24px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* Linha horizontal saindo do match para a direita */
+.bracket-match-wrapper::after {
+    content: '';
+    position: absolute;
+    right: -24px;
+    top: 50%;
+    width: 24px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 0;
+}
+
+/* Esconder conector do último round */
+.bracket-round:last-child .bracket-match-wrapper::after {
+    display: none;
+}
+
+/* Conectores verticais entre pares de matches */
+.bracket-pair {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    position: relative;
+}
+
+.bracket-pair::after {
+    content: '';
+    position: absolute;
+    right: -24px;
+    top: 25%;
+    bottom: 25%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 0;
+}
+
+/* Esconder conectores verticais do último round */
+.bracket-round:last-child .bracket-pair::after {
+    display: none;
+}
+
+/* ---- Seção de Repescagem ---- */
+.bracket-repescagem {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px dashed rgba(255, 215, 0, 0.15);
+}
+
+.bracket-repescagem-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent, #ffd700);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ---- Pódio ---- */
+.bracket-podio {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: rgba(255, 215, 0, 0.04);
+    border: 1px solid rgba(255, 215, 0, 0.12);
+}
+
+.bracket-podio-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent, #ffd700);
+    margin-bottom: 1rem;
+}
+
+.bracket-podio-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.bracket-podio-item + .bracket-podio-item {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bracket-podio-rank {
+    font-size: 0.85rem;
+    font-weight: 800;
+    min-width: 100px;
+}
+
+.bracket-podio-rank.gold { color: #ffd700; }
+.bracket-podio-rank.silver { color: #c0c0c0; }
+.bracket-podio-rank.bronze { color: #cd7f32; }
+
+.bracket-podio-name {
+    font-size: 0.9rem;
+    color: #e6f1ff;
+    font-weight: 500;
+}
+
+/* ---- Cabeçalho do bracket ---- */
+.bracket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.bracket-header-info h2 {
+    color: var(--accent, #ffd700);
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
+}
+
+.bracket-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.bracket-status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    border: 1px solid;
+    font-weight: 600;
+}
+
+.bracket-status-badge.concluida {
+    background: rgba(77, 255, 136, 0.1);
+    color: #4dff88;
+}
+
+.bracket-status-badge.em-andamento {
+    background: rgba(255, 215, 0, 0.1);
+    color: #ffd700;
+}
+
+.bracket-status-badge.aguardando {
+    background: rgba(136, 146, 176, 0.1);
+    color: #8892b0;
+}
+
+/* ---- Seed numbers ---- */
+.bracket-seed {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent, #ffd700);
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+/* ---- Fight number circle ---- */
+.bracket-fight-num {
+    position: absolute;
+    right: -32px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-weight: 800;
+    color: var(--accent, #ffd700);
+    z-index: 3;
+}
+
+/* ---- Scrollbar styling ---- */
+.bracket-container::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.bracket-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.bracket-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.2);
+    border-radius: 4px;
+}
+
+.bracket-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 215, 0, 0.35);
+}
+
+/* ---- Empty state ---- */
+.bracket-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim, #8892b0);
+    gap: 1rem;
+    padding: 4rem;
+}

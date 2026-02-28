@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { FileText, Download, PieChart, Info, Trophy as TrophyIcon, RefreshCw, Eye } from 'lucide-react'
+import { FileText, Download, PieChart, Trophy as TrophyIcon, Eye, Users, Building, BarChart } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { api } from '../utils/api'
+import { gerarPDFChaveTree } from '../utils/pdfGenerator'
 
 const Relatorios = () => {
     // ... items above ...
@@ -52,7 +53,7 @@ const Relatorios = () => {
         doc.setFontSize(20)
         doc.text('Relatório Geral por Equipe', 14, 22)
         doc.setFontSize(10)
-        doc.text(`Gerado em: ${now}`, 14, 30)
+        doc.text(`Gerado em: ${now} `, 14, 30)
 
         equipes.forEach((equipe, index) => {
             const atletasEquipe = atletas.filter(a => a.equipeId === equipe.id)
@@ -85,7 +86,7 @@ const Relatorios = () => {
             doc.setPage(i)
             doc.setFontSize(10)
             doc.setTextColor(150)
-            doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
+            doc.text(`Página ${i} de ${pageCount} `, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
             doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
         }
 
@@ -103,7 +104,7 @@ const Relatorios = () => {
         doc.setFontSize(20)
         doc.text('Relatório por Categoria', 14, 22)
         doc.setFontSize(10)
-        doc.text(`Gerado em: ${now}`, 14, 30)
+        doc.text(`Gerado em: ${now} `, 14, 30)
 
         // Agrupamento: Sexo > Graduação > Categoria
         const sexos = ['Masculino', 'Feminino']
@@ -126,7 +127,7 @@ const Relatorios = () => {
                 if (atletasGrad.length === 0) return
 
                 doc.setFontSize(12)
-                doc.text(`Graduação: ${grad}`, 20, currentY)
+                doc.text(`Graduação: ${grad} `, 20, currentY)
                 currentY += 5
 
                 const body = pesos.map(peso => {
@@ -157,7 +158,7 @@ const Relatorios = () => {
             doc.setPage(i)
             doc.setFontSize(10)
             doc.setTextColor(150)
-            doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
+            doc.text(`Página ${i} de ${pageCount} `, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
             doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
         }
 
@@ -169,81 +170,21 @@ const Relatorios = () => {
     }
 
     const exportPDFTodosChaveamentos = (preview = false) => {
-        const doc = new jsPDF({
-            orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4'
-        })
-        const now = new Date().toLocaleString('pt-BR')
-
         if (chaveamentos.length === 0) {
             alert("Nenhum chaveamento gerado para exportar.")
             return
         }
 
-        chaveamentos.forEach((bracket, index) => {
-            if (index > 0) doc.addPage()
-
-            doc.setFontSize(18)
-            doc.setTextColor(10, 25, 47)
-            doc.text('CHAVEAMENTO OFICIAL - JUDÔ', 14, 20)
-
-            doc.setFontSize(12)
-            doc.text(`Categoria: ${bracket.nome}`, 14, 30)
-            doc.setFontSize(10)
-            doc.text(`Gerado em: ${now}`, 14, 38)
-
-            const body = (bracket.lutas || []).map(l => [
-                `${l.nomeRodada} - ${l.posicao}`,
-                l.atletaA ? `${l.atletaA.nome} (${l.atletaA.equipe?.nome || '---'})` : 'AGUARDANDO',
-                'VS',
-                l.atletaB ? `${l.atletaB.nome} (${l.atletaB.equipe?.nome || '---'})` : 'AGUARDANDO',
-                l.vencedor ? `VENCEDOR: ${l.vencedor.nome}` : (l.status === 'BYE' ? 'PASSAGEM AUTOMÁTICA' : '---')
-            ])
-
-            doc.autoTable({
-                startY: 45,
-                head: [['LUTA', 'ATLETA A', '', 'ATLETA B', 'RESULTADO']],
-                body: body,
-                theme: 'grid',
-                headStyles: { fillColor: [10, 25, 47], textColor: [255, 215, 0] },
-                styles: { fontSize: 9, cellPadding: 3 },
-                columnStyles: {
-                    0: { cellWidth: 15 },
-                    2: { cellWidth: 10, halign: 'center' }
-                }
-            })
-
-            if ((bracket.status === 'CONCLUIDO' || bracket.status === 'CONCLUIDA') && bracket.podio) {
-                const pY = doc.lastAutoTable.finalY + 15
-                doc.setFontSize(12)
-                doc.text('RESULTADO FINAL (PÓDIO)', 14, pY)
-
-                const podioBody = [
-                    ['1º LUGAR (OURO)', bracket.podio.primeiro?.nome || '---'],
-                    ['2º LUGAR (PRATA)', bracket.podio.segundo?.nome || '---'],
-                    ['3º LUGAR (BRONZE)', bracket.podio.terceiro1?.nome || '---'],
-                    ['3º LUGAR (BRONZE)', bracket.podio.terceiro2?.nome || '---']
-                ]
-
-                doc.autoTable({
-                    startY: pY + 2,
-                    body: podioBody,
-                    theme: 'plain',
-                    styles: { fontSize: 10, fontStyle: 'bold' },
-                    columnStyles: { 0: { cellWidth: 50 } }
-                })
-            }
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
         })
 
-        const pageCount = doc.internal.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(9)
-            doc.setTextColor(150)
-            doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
-            doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
-        }
+        chaveamentos.forEach((bracket, index) => {
+            if (index > 0) doc.addPage()
+            gerarPDFChaveTree(bracket, doc, false) // Note: docInput is provided, so it won't save internally
+        })
 
         if (preview) {
             window.open(doc.output('bloburl'))

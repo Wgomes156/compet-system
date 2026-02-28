@@ -49,6 +49,9 @@ export const editarResultado = async (req, res) => {
 export const getCategoria = async (req, res) => {
     const { id } = req.params;
     try {
+        // Garantir que a disputa de bronze existe se as semis terminaram
+        await BoutService.verificarECriarBronzeRetroativo(id);
+
         const categoria = await prisma.categoria.findUnique({
             where: { id },
             include: {

@@ -34,10 +34,9 @@ export const registrarVencedor = async (lutaId, vencedorId, resultadoTipo) => {
     // 2. Processar derrotado para repescagem
     await processarDerrotado(luta, derrotadoId, vencedorId);
 
-    // 3. Se for semifinal, ou final, pode disparar lógica de repescagem
+    // 3. Se for semifinal, criar disputa de bronze
     if (luta.nomeRodada === "Semifinal") {
-        // A repescagem no Bagnall-Wild geralmente espera os finalistas serem definidos
-        // Mas podemos começar a marcar elegibilidade
+        await criarDisputaDeBronze(luta.categoriaId);
     }
 
     // 4. Verificar se a Categoria foi concluída
@@ -46,7 +45,7 @@ export const registrarVencedor = async (lutaId, vencedorId, resultadoTipo) => {
     return lutaAtualizada;
 };
 
-const avancarVencedor = async (lutaAtual, vencedorId) => {
+async function avancarVencedor(lutaAtual, vencedorId) {
     const proximaLuta = await prisma.luta.findUnique({
         where: { id: lutaAtual.proximaLutaId }
     });
@@ -69,9 +68,9 @@ const avancarVencedor = async (lutaAtual, vencedorId) => {
         where: { id: proximaLuta.id },
         data
     });
-};
+}
 
-const processarDerrotado = async (luta, derrotadoId, vencedorId) => {
+async function processarDerrotado(luta, derrotadoId, vencedorId) {
     // Registrar a derrota para rastreamento de repescagem
     // O lado do bracket (A ou B) é determinado pela posição inicial
     const lado = luta.posicao <= (Math.pow(2, luta.rodada) / 2) ? "A" : "B";
@@ -89,7 +88,7 @@ const processarDerrotado = async (luta, derrotadoId, vencedorId) => {
 
     // Atualizar elegibilidade em cascata
     await atualizarElegibilidadeEmCascata(luta.categoriaId);
-};
+}
 
 export const atualizarElegibilidadeEmCascata = async (categoriaId) => {
     // 1. Identificar quem está na final
@@ -144,12 +143,90 @@ const montarLutasRepescagem = async (categoriaId) => {
     const grupoA = elegiveis.filter(e => e.ladoBracket === "A");
     const grupoB = elegiveis.filter(e => e.ladoBracket === "B");
 
-    // Logic to build the repechage tree based on rounds
-    // For each group, the athletes face each other in sequence of their elimination
-    // Round 1 loser vs Round 2 loser -> winner vs Round 3 loser...
-    // Until they reach the Bronze match against the semifinal loser of the other side?
-    // Actually, standard is: perdedor da semi de um lado vs vencedor da repescagem do mesmo lado.
+    // TODO: Implementar repescagem completa Bagnall-Wild
+    // Para cada grupo, os atletas se enfrentam na sequência da eliminação
 };
+
+/**
+ * Wrapper para ser chamado via controller para garantir que o bronze existe
+ */
+export const verificarECriarBronzeRetroativo = async (categoriaId) => {
+    return await criarDisputaDeBronze(categoriaId);
+};
+
+/**
+ * Cria a Disputa de Bronze quando ambas as semifinais estiverem encerradas.
+ * Os perdedores das semifinais se enfrentam pelo 3º lugar.
+ */
+async function criarDisputaDeBronze(categoriaId) {
+    // Verificar se já existe disputa de bronze
+    const bronzeExistente = await prisma.luta.findFirst({
+        where: { categoriaId, nomeRodada: "Disputa de Bronze" }
+    });
+    if (bronzeExistente) return; // Já foi criada
+
+    // Buscar todas as semifinais (ajustado para ser mais flexível com o nome)
+    const semifinais = await prisma.luta.findMany({
+        where: {
+            categoriaId,
+            nomeRodada: { in: ["Semifinal", "Semi-final", "Semifinais"] }
+        }
+    });
+
+    // Precisamos de exatamente 2 semifinais
+    if (semifinais.length !== 2) return;
+
+    // Devem estar encerradas ou ser BYE
+    if (!semifinais.every(s => s.status === "ENCERRADA" || s.status === "BYE")) return;
+
+    // Os derrotados das semifinais disputam o bronze
+    const derrotado1 = semifinais[0].derrotadoId;
+    const derrotado2 = semifinais[1].derrotadoId;
+
+    // Se NÃO houver nenhum derrotado (caso raro de dois BYEs em lados diferentes que resultam em nada), aborta
+    if (!derrotado1 && !derrotado2) return;
+
+    // Buscar a rodada mais alta para posicionar corretamente
+    const maxRodada = await prisma.luta.aggregate({
+        where: { categoriaId, bracketTipo: "PRINCIPAL" },
+        _max: { rodada: true }
+    });
+    const rodadaBronze = (maxRodada._max.rodada || 1) + 1;
+
+    // Criar a luta de bronze
+    const novaLuta = await prisma.luta.create({
+        data: {
+            categoriaId,
+            bracketTipo: "BRONZE",
+            rodada: rodadaBronze,
+            nomeRodada: "Disputa de Bronze",
+            posicao: 1,
+            atletaAId: derrotado1,
+            atletaBId: derrotado2,
+            status: (!derrotado1 || !derrotado2) ? "BYE" : "AGUARDANDO",
+        }
+    });
+
+    // Se for BYE (um dos atletas já passou), registrar o vencedor automaticamente
+    if (!derrotado1 || !derrotado2) {
+        const bronzeVencedorId = derrotado1 || derrotado2;
+        if (bronzeVencedorId) {
+            await prisma.luta.update({
+                where: { id: novaLuta.id },
+                data: {
+                    vencedorId: bronzeVencedorId,
+                    status: "BYE"
+                }
+            });
+        }
+    }
+
+    // Atualizar categoria para EM_ANDAMENTO caso estivesse como AGUARDANDO
+    await prisma.categoria.update({
+        where: { id: categoriaId },
+        data: { status: "EM_ANDAMENTO" }
+    });
+}
 
 export const verificarConclusaoCategoria = async (categoriaId) => {
     // 1. Verificar se a FINAL foi concluída
@@ -165,8 +242,11 @@ export const verificarConclusaoCategoria = async (categoriaId) => {
         where: { categoriaId, nomeRodada: "Disputa de Bronze" }
     });
 
-    const bronzesConcluidos = bronzes.every(l => l.status === "ENCERRADA" || l.status === "BYE");
-    if (!bronzesConcluidos) return;
+    // Se existem bronzes pendentes, não conclui ainda
+    if (bronzes.length > 0) {
+        const bronzesConcluidos = bronzes.every(l => l.status === "ENCERRADA" || l.status === "BYE");
+        if (!bronzesConcluidos) return;
+    }
 
     // 3. Montar o pódio
     const podioData = {
@@ -176,7 +256,9 @@ export const verificarConclusaoCategoria = async (categoriaId) => {
 
     if (bronzes.length > 0) {
         podioData.terceiro1Id = bronzes[0]?.vencedorId;
-        podioData.terceiro2Id = bronzes[1]?.vencedorId;
+        if (bronzes.length > 1) {
+            podioData.terceiro2Id = bronzes[1]?.vencedorId;
+        }
     }
 
     await prisma.podio.upsert({
