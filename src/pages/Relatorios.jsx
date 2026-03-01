@@ -87,7 +87,7 @@ const Relatorios = () => {
             doc.setFontSize(10)
             doc.setTextColor(150)
             doc.text(`Página ${i} de ${pageCount} `, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
-            doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
+            doc.text('Gerado pelo Compet System', 14, doc.internal.pageSize.height - 10)
         }
 
         if (preview) {
@@ -159,7 +159,7 @@ const Relatorios = () => {
             doc.setFontSize(10)
             doc.setTextColor(150)
             doc.text(`Página ${i} de ${pageCount} `, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10)
-            doc.text('Gerado pelo Sistema de Competição de Judô', 14, doc.internal.pageSize.height - 10)
+            doc.text('Gerado pelo Compet System', 14, doc.internal.pageSize.height - 10)
         }
 
         if (preview) {

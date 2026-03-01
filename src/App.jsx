@@ -74,7 +74,7 @@ const Dashboard = () => {
         <div className="animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.5rem' }}>Dashboard Judô</h1>
+                    <h1 style={{ fontSize: '2.5rem' }}>Dashboard Compet System</h1>
                     <p style={{ color: 'var(--text-dim)' }}>Bem-vindo ao sistema de gestão de competições.</p>
                 </div>
                 {hasLegacyData && (
@@ -129,7 +129,7 @@ function App() {
                     padding: '0 0.5rem'
                 }}>
                     <Trophy color="var(--accent)" size={32} />
-                    <h2 style={{ fontSize: '1.2rem', color: 'var(--accent)' }}>JUDÔ COMPET</h2>
+                    <h2 style={{ fontSize: '1.2rem', color: 'var(--accent)' }}>COMPET SYSTEM</h2>
                 </div>
 
                 <nav style={{ flex: 1 }}>
@@ -153,7 +153,7 @@ function App() {
                     fontSize: '0.8rem',
                     color: 'var(--text-dim)'
                 }}>
-                    <p>© 2026 Judô Compet System</p>
+                    <p>© 2026 Compet System</p>
                 </div>
             </aside>
 

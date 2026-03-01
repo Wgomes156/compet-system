@@ -1,4 +1,4 @@
-# JUDÔ COMPET SYSTEM  - ANTIGRAVITY/VSCODE 🥋🥇
+# COMPET SYSTEM  - ANTIGRAVITY/VSCODE 🥋🥇
 
 Sistema completo de gestão de competições de Judô, desenvolvido para facilitar a organização, inscrição de atletas, geração de chaves e controle de resultados.
 
@@ -91,4 +91,4 @@ src/
 ---
 
 ## 📝 Licença
-Desenvolvido como parte do sistema **Judô Compet**. Todos os direitos reservados a PSC SERVICE CNPJ:48.117.061/0001-60.
+Desenvolvido como parte do sistema **Compet System**. Todos os direitos reservados a PSC SERVICE CNPJ:48.117.061/0001-60.

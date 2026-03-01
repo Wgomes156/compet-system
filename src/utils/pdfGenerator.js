@@ -164,7 +164,7 @@ export const gerarPDFChaveTree = (bracket, docInput = null, preview = false) => 
 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text('COMPET - JUDÔ SYSTEM', doc.internal.pageSize.width - margin, 10, { align: "right" });
+    doc.text('COMPET SYSTEM', doc.internal.pageSize.width - margin, 10, { align: "right" });
 
     // Título da Categoria
     doc.setTextColor(...COLORS.PRIMARY);
