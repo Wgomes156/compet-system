@@ -17,11 +17,14 @@ Abra o seu terminal na pasta raiz do projeto e execute os seguintes comandos:
 # 1. Instalar as dependências do projeto
 npm install
 
-# 2. Iniciar o servidor de desenvolvimento
-npm run dev
+# 2. Iniciar o servidor de desenvolvimento (Site + Backend)
+npm run dev:all
 ```
 
-Após rodar o comando `npm run dev`, o terminal exibirá um link (geralmente `http://localhost:5173`). Abra este link no seu navegador para acessar o sistema.
+> [!TIP]
+> O novo atalho `npm run dev:all` inicia tanto o site quanto o servidor simultaneamente. Se preferir rodar apenas o frontend, use `npm run dev`.
+
+Após rodar o comando, o terminal exibirá um link (geralmente `http://localhost:5173`). Abra este link no seu navegador para acessar o sistema.
 
 ---
 
@@ -66,8 +69,8 @@ O sistema utiliza **Prisma** com **SQLite**. Para visualizar ou editar os dados:
    cd server
    ```
 2. Execute o comando:
-   ```bash
-   npx prisma studio
+   1- ```bash
+   2- npx prisma studio
    ```
 3. O painel abrirá no seu navegador em `http://localhost:5555`.
 
