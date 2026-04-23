@@ -11,32 +11,39 @@ Para configurar e rodar o sistema localmente, siga os passos abaixo:
 - NPM ou Yarn
 
 ### Instalação e Execução
-Abra o seu terminal na pasta raiz do projeto e execute os seguintes comandos:
+
+O sistema é composto por **duas partes** que precisam rodar simultaneamente:
+- **Frontend** (React/Vite) — interface do usuário na porta `5173`
+- **Backend** (Express/Prisma) — API de dados na porta `3001`
+
+#### 1. Instalar as dependências
 
 ```bash
-# 1. Instalar as dependências do projeto
+# Na pasta raiz do projeto
 npm install
 
-# 2. Iniciar o servidor de desenvolvimento (Site + Backend)
+# Na pasta do servidor
+cd server
+npm install
+cd ..
+```
+
+#### 2. Iniciar o sistema
+
+```bash
 npm run dev:all
 ```
 
+Este comando inicia **frontend e backend simultaneamente** em um único terminal. Você verá os logs de ambos com prefixos coloridos:
+- 🟦 `[FRONTEND]` — Servidor Vite (porta `5173`)
+- 🟨 `[BACKEND]` — API Express (porta `3001`)
+
+#### 3. Acessar o sistema
+
+Abra no navegador: **http://localhost:5173**
+
 > [!TIP]
-> O novo atalho `npm run dev:all` inicia tanto o site quanto o servidor simultaneamente. Se preferir rodar apenas o frontend, use `npm run dev`.
-
-Após rodar o comando, o terminal exibirá um link (geralmente `http://localhost:5173`). Abra este link no seu navegador para acessar o sistema.
-
----
-
-## Ver dados do banco de dados
-```bash
-# 1 Clicar com botão direito na pasta server
-# 2. Selecionar "Abrir no Terminal Integrado"
-# 3. Digitar o comando npx prisma studio
-# 4. Clicar no link que aparecer no terminal
-
-
-# 2. Iniciar o servidor de desenvolvimento
+> Se preferir rodar apenas o frontend, use `npm run dev`. Para rodar apenas o backend, entre na pasta `server` e execute `npm run dev`.
 ## ✨ Funcionalidades Principais
 
 - **📊 Dashboard:** Visão geral rápida com estatísticas de atletas, equipes e medalhas.
