@@ -28,7 +28,7 @@ npm install
 cd ..
 ```
 
-#### 2. Iniciar o sistema
+#### 2. Iniciar rodar o sistema
 
 ```bash
 npm run dev:all
